@@ -101,10 +101,10 @@ static apr_status_t NonceFilterOutFilter(ap_filter_t *f, apr_bucket_brigade *pbb
 		//char *script= "script-nonce ";
 		//sprintf(val, "%s%s", "script-nonce ", nonce);
 		//currently this is the only one being supported
-		apr_table_setn(headers, "X-WebKit-CSP", apr_pstrcat(c->pool, "script-nonce ", ctx->nonce, NULL));
+		apr_table_addn(headers, "X-WebKit-CSP", apr_pstrcat(c->pool, "script-nonce ", ctx->nonce, NULL));
 		//might be useful with future support for script-nonce
-		apr_table_setn(headers, "Content-Security-Policy", apr_pstrcat(c->pool, "script-nonce ", ctx->nonce, NULL));
-		apr_table_setn(headers, "X-Content-Security-Policy", apr_pstrcat(c->pool, "script-nonce ", ctx->nonce, NULL));
+		apr_table_addn(headers, "Content-Security-Policy", apr_pstrcat(c->pool, "script-nonce ", ctx->nonce, NULL));
+		apr_table_addn(headers, "X-Content-Security-Policy", apr_pstrcat(c->pool, "script-nonce ", ctx->nonce, NULL));
 		apr_table_unset(f->r->headers_out, "Content-Length");
 		//free(val);
 		 //First, generate nonce
@@ -176,6 +176,7 @@ static apr_status_t NonceFilterOutFilter(ap_filter_t *f, apr_bucket_brigade *pbb
 		apr_size_t ii;
 		memset(save, '\0', strlen(k));
 		for(ii=len-strlen(k)+1; ii < len; ii++){
+			if(ii<0) ii=0;
 			if(strncmp(&data[ii], k, len-ii)==0){
 				//deal with match
 				int ss=0;
