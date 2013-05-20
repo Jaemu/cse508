@@ -125,6 +125,8 @@ static apr_status_t NonceFilterOutFilter(ap_filter_t *f, apr_bucket_brigade *pbb
         //Is this the last bucket, 
         if(APR_BUCKET_IS_EOS(hbktIn))
             {
+			pbktOut = apr_bucket_heap_create(save, strlen(save), apr_bucket_free, c->bucket_alloc);
+        	APR_BRIGADE_INSERT_TAIL(pbbOut,pbktOut);
             apr_bucket *pbktEOS=apr_bucket_eos_create(c->bucket_alloc);
             APR_BRIGADE_INSERT_TAIL(pbbOut,pbktEOS);
             continue;
@@ -181,7 +183,6 @@ static apr_status_t NonceFilterOutFilter(ap_filter_t *f, apr_bucket_brigade *pbb
 					save[ss]=data[ii+ss];
 					buf[ii+ss]="";
 				}
-				new_bucket_size= new_bucket_size-len+i;
 				break;
 			}
 		}
