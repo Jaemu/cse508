@@ -84,7 +84,10 @@ static apr_status_t NonceFilterOutFilter(ap_filter_t *f, apr_bucket_brigade *pbb
 	pbbOut=apr_brigade_create(r->pool, c->bucket_alloc);
 
 	const char *k = hConfig->key;
-
+	
+	//to save a line for edge case
+	char save[strlen(k)];
+	memset(save, '\0', strlen(k));
 
 	if (!ctx) {
 
@@ -113,7 +116,7 @@ static apr_status_t NonceFilterOutFilter(ap_filter_t *f, apr_bucket_brigade *pbb
          hbktIn != APR_BRIGADE_SENTINEL(pbbIn);
          hbktIn = APR_BUCKET_NEXT(hbktIn))
     {
-        const char *data;
+        const char *bdata;
         apr_size_t len;
         char *buf;
         apr_size_t n;
@@ -128,14 +131,20 @@ static apr_status_t NonceFilterOutFilter(ap_filter_t *f, apr_bucket_brigade *pbb
             }
 
         /* read */
-        apr_bucket_read(hbktIn,&data,&len,APR_BLOCK_READ);
+        apr_bucket_read(hbktIn,&bdata,&len,APR_BLOCK_READ);
+		
 
+		len= len + strlen(save);
+		//char data[len];
+		char *data=apr_pstrcat(c->pool, save, bdata, NULL);
         //Right now this filters output and converts all characters to upper case.
-		  int worst = (strlen(nonce))/ strlen(k); worst++;
+		int worst = (strlen(nonce))/ strlen(k); worst++;
         apr_size_t new_bucket_size = len;//
-        buf = apr_bucket_alloc(len * worst, c->bucket_alloc);
+        buf = apr_bucket_alloc((len * worst), c->bucket_alloc);
         apr_size_t new_index = 0;
         apr_size_t i = 0;
+		
+		
         for(i; i < len; i++)
         {
             if(strncmp(&data[i], k, 1) == 0)
@@ -162,6 +171,20 @@ static apr_status_t NonceFilterOutFilter(ap_filter_t *f, apr_bucket_brigade *pbb
             buf[new_index] = data[i];
             new_index++;
         }
+		apr_size_t ii;
+		memset(save, '\0', strlen(k));
+		for(ii=len-strlen(k)+1; ii < len; ii++){
+			if(strncmp(&data[ii], k, len-ii)==0){
+				//deal with match
+				int ss=0;
+				for(ss; ss+ii< len; ss++){
+					save[ss]=data[ii+ss];
+					buf[ii+ss]="";
+				}
+				new_bucket_size= new_bucket_size-len+i;
+				break;
+			}
+		}
         pbktOut = apr_bucket_heap_create(buf, new_bucket_size, apr_bucket_free, c->bucket_alloc);
         APR_BRIGADE_INSERT_TAIL(pbbOut,pbktOut);
         }
